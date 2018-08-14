@@ -1,0 +1,156 @@
+﻿<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title>收银台</title>
+		<script src="/js/jquery-3.3.1.min.js"></script>
+	</head>
+
+	<body>
+		<h4>利民药店收银台</h4>
+		<hr/>
+		<table border="0" cellpadding="0" cellspacing="0">
+			<tr>
+				<td>条形码：</td>
+				<td><input type="search" name="barCode" placeholder="请输入条形码" /></td>
+				<td>&nbsp;&nbsp;<button type="button" onclick="search()">搜索</button></td>
+			</tr>
+		</table>
+		<hr/>
+		<table id="cashier" border="1" cellpadding="0" cellspacing="0" style="width: 700px;">
+
+			<tr>
+				<th>条形码</th>
+				<th>物品名称</th>
+				<th>[零售价]</th>
+				<th>数量</th>
+				<th>单位</th>
+				<th>合计金额</th>
+			</tr>
+			<tr id="noCashier">
+				<td colspan="6" style="text-align: center;">暂无药品！</td>
+			</tr>
+		</table>
+		<hr/>
+
+		<table border="0">
+			<tr>
+				<td style="font-weight: bold;">总计</td>
+				<td> </td>
+			</tr>
+			<tr>
+				<td>商品总数量：</td>
+				<td name="totalCount">0</td>
+			</tr>
+			<tr>
+				<td>应收金额：</td>
+				<td name="totalPrice">￥0.00 </td>
+			</tr>
+			<tr>
+				<td>实收金额：</td>
+				<td>￥<input type="number" name="shishou"  value=""/> </td>
+			</tr>
+			<tr>
+				<td>找零：</td>
+				<td>￥<input type="number" name="zhaoling"  value=""/> </td>
+			</tr>
+
+		</table>
+		<hr />
+		<button type="button" onclick="jiesuan()">结算</button>
+	</body>
+
+<script>
+	//查询按钮
+	function search() {
+		var barCode=$("input[name='barCode']").val();
+		$.ajax({
+			url:"http://localhost:8763/getCashierByBarCode",
+			data:{barCode:barCode},
+			dataType:"json",
+			success:function (data) {
+				var content="<tr name='cashierInfo'>" +
+					"<td>"+data.barCode+"</td>" +
+					"<td>"+data.cashierName+"</td>" +
+					"<td>￥"+data.retailPrice.toFixed(2)+"</td>" +
+					"<td><input type='number' name='num' style='width:80px;' value='1' onblur='changeCount(this)'/></td>" +
+					"<td>"+data.unit+"</td>" +
+					"<td>￥"+data.retailPrice.toFixed(2)+"</td>" +
+					"</tr>";
+				$("#noCashier").remove();
+				$("#cashier").append(content);
+				total();
+				totalPrice();
+            }
+		});
+    }
+
+    //计算总数
+    function total() {
+	    var totalCount=0;
+        $("#cashier tr[name='cashierInfo']").each(function () {
+			totalCount+=parseInt($(this).children().next().next().next().children().val());
+        });
+        $("td[name='totalCount']").html(totalCount);
+    }
+
+    //计算总价
+    function totalPrice() {
+		var totalPrice=0;
+		$("#cashier tr[name='cashierInfo']").each(function () {
+            var priceStr=$(this).children().next().next().next().next().next().html();
+            var price=parseFloat(priceStr.substring(1));
+            totalPrice+=price;
+        });
+        $("td[name='totalPrice']").html("￥"+totalPrice.toFixed(2));
+    }
+
+    //改变数量时
+    function changeCount(obj) {
+		var count=parseInt($(obj).val());
+		var priceStr=$(obj).parent().prev().text();
+		var price=priceStr.substring(1);
+        $(obj).parent().next().next().html("￥"+(price*count).toFixed(2));
+		total();
+		totalPrice();
+    }
+
+    //实收金额失焦
+    $("input[name='shishou']").blur(function () {
+		var price=$("input[name='shishou']").val();
+		var totalPriceStr= $("td[name='totalPrice']").html();
+		var totalPrice=totalPriceStr.substring(1);
+		var zhaoling=parseFloat(price)-parseFloat(totalPrice);
+		$("input[name='zhaoling']").val(zhaoling.toFixed(2));
+    });
+
+	//结算
+	function jiesuan() {
+	    //获取每一行的内容
+        $("#cashier tr[name='cashierInfo']").each(function () {
+            //获取每一行的编号
+            var barCode=$(this).children().html();
+            //获取每一行的数量
+            var count=parseInt($(this).children().next().next().next().children().val());
+            //修改库存
+            $.ajax({
+				url:"http://localhost:8763/updateCashier",
+				data:{count:count,barCode:barCode},
+				dataType:"json",
+				success:function (data) {
+                }
+			});
+		});
+        $("#cashier tr[name='cashierInfo']").remove();
+        var content="<tr id='noCashier'>" +
+            "<td colspan='6' style='text-align: center;'>暂无药品！</td>" +
+            "</tr>";
+        $("#cashier").append(content);
+        $("td[name='totalCount']").html("0");
+        $("td[name='totalPrice']").html("￥0.00");
+        $("input[name='shishou']").val("");
+        $("input[name='zhaoling']").val("");
+    }
+</script>
+</html>

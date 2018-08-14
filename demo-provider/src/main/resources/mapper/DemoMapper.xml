@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.bdqn.demoprovider.dao.CashierMapper">
+
+    <select id="listCashiers" resultType="cn.bdqn.demo.pojo.Cashier">
+        select * from cashier order by creatTime desc
+    </select>
+    
+    <insert id="insertCashier" parameterType="cn.bdqn.demo.pojo.Cashier">
+        insert into cashier values(#{barCode},#{cashierName},#{count},#{unit},#{univalent},#{retailPrice},NOW())
+    </insert>
+
+    <select id="getCashierByBarCode" resultType="cn.bdqn.demo.pojo.Cashier">
+        select * from cashier where barCode=#{barCode}
+    </select>
+    
+    <update id="updateCashier" parameterType="cn.bdqn.demo.pojo.Cashier">
+        update cashier set count=count-#{count} where barCode=#{barCode}
+    </update>
+</mapper>
